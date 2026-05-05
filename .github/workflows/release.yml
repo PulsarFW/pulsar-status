@@ -17,10 +17,9 @@ jobs:
 
       - name: Bundle files
         run: |
-          mkdir -p ./temp/pulsar-status
-          cp ./{README.md,fxmanifest.lua} ./temp/pulsar-status
-          cp -r ./{client,server} ./temp/pulsar-status
-          cd ./temp && zip -r ../pulsar-status.zip ./pulsar-status
+          mkdir -p staging/pulsar-status
+          rsync -a --exclude='.github' --exclude='node_modules' --exclude='staging' . staging/pulsar-status/
+          cd staging && zip -r ../pulsar-status.zip pulsar-status/
 
       - name: Create release
         uses: softprops/action-gh-release@v2
