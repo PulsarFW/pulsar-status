@@ -102,7 +102,7 @@ local _hpListener = nil
 
 RegisterNetEvent("Status:Client:Ticks:Stress", function()
 	if LocalPlayer.state.stressTicks ~= nil then
-		exports['pulsar-hud']:ApplyUniqueBuff("stress_ticks", #(LocalPlayer.state.stressTicks or {}), false, {
+		exports['pulsar-hud']:ApplyBuff("stress_ticks", #(LocalPlayer.state.stressTicks or {}), false, {
 			customMax = #(LocalPlayer.state.stressTicks or {}),
 		})
 	end
