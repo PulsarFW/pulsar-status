@@ -1,6 +1,6 @@
 function RegisterCallbacks()
-    exports["pulsar-core"]:RegisterServerCallback('Status:Get', function(source, data, cb)
-        local char = exports['pulsar-characters']:FetchCharacterSource(source)
+    plsr.Callbacks:RegisterServerCallback('Status:Get', function(source, data, cb)
+        local char = plsr.Fetch:CharacterSource(source)
         if char ~= nil then
             local s = char:GetData('Status')
             cb(s)

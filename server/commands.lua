@@ -1,5 +1,5 @@
 function RegisterChatCommands()
-    exports["pulsar-chat"]:RegisterAdminCommand('reset', function(source, args, rawCommand)
+    plsr.Chat:RegisterAdminCommand('reset', function(source, args, rawCommand)
         TriggerClientEvent('Status:Client:Reset', source)
     end, {
         help = 'Reset Statuses',

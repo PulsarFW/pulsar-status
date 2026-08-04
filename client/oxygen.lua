@@ -5,8 +5,8 @@ local oxygenTank = nil
 local oxygenMask = nil
 
 AddEventHandler("Characters:Client:Spawn", function()
-	exports['pulsar-hud']:RegisterBuff("oxygen-tank", "mask-ventilator", "#457F88", -1, "permanent")
-	exports['pulsar-hud']:RegisterStatus("oxygen", 100, 100, "lungs", "#457F88", true, false, {
+    plsr.Buffs:RegisterBuff("oxygen-tank", "mask-ventilator", "#457F88", -1, "permanent")
+	plsr.Hud:RegisterStatus("oxygen", 100, 100, "lungs", "#457F88", true, false, {
 		hideHigh = true,
 		order = 3,
 	})
@@ -17,12 +17,12 @@ AddEventHandler("Characters:Client:Spawn", function()
 	oxygenDepletionRate = 1
 
 	CreateThread(function()
-		while LocalPlayer.state.loggedIn do
-			if IsPedSwimmingUnderWater(LocalPlayer.state.ped) then
+		while plsr.State.flags.loggedIn do
+			if IsPedSwimmingUnderWater(PlayerPedId()) then
 				underWater = true
 
 				if oxygenLevel > 0 then
-					SetPedDiesInWater(LocalPlayer.state.ped, false)
+					SetPedDiesInWater(PlayerPedId(), false)
 
 					oxygenLevel -= oxygenDepletionRate
 
@@ -30,8 +30,8 @@ AddEventHandler("Characters:Client:Spawn", function()
 						oxygenLevel = 100
 					end
 				else
-					SetPedDiesInWater(LocalPlayer.state.ped, true)
-					SetPedMaxTimeUnderwater(LocalPlayer.state.ped, 0.0)
+					SetPedDiesInWater(PlayerPedId(), true)
+					SetPedMaxTimeUnderwater(PlayerPedId(), 0.0)
 				end
 			else
 				underWater = false
@@ -54,7 +54,7 @@ AddEventHandler("Characters:Client:Spawn", function()
 	end)
 
 	CreateThread(function()
-		while LocalPlayer.state.loggedIn do
+		while plsr.State.flags.loggedIn do
 			if oxygenLevel < 100 then
 				local sendingLevel = math.floor(oxygenLevel)
 
@@ -73,12 +73,12 @@ AddEventHandler("Ped:Client:Died", function()
 end)
 
 function RemoveScubaGear()
-	if IsPedSwimming(LocalPlayer.state.ped) then
-		exports["pulsar-hud"]:Notification("error", "Can't Take Off Gear Whilst Swimming")
+	if IsPedSwimming(PlayerPedId()) then
+		plsr.Notification:Error("Can't Take Off Gear Whilst Swimming")
 		return
 	end
 
-	exports['pulsar-hud']:Progress({
+	plsr.Progress:Progress({
 		name = "scuba_gear",
 		duration = 2500,
 		label = "Removing Scuba Gear",
@@ -97,7 +97,7 @@ function RemoveScubaGear()
 		if not cancelled then
 			oxygenDepletionRate = 1.25
 
-			exports['pulsar-hud']:RegisterStatus("oxygen", 100, 100, "lungs", "#457F88", true, true, {
+			plsr.Hud:RegisterStatus("oxygen", 100, 100, "lungs", "#457F88", true, true, {
 				hideHigh = true,
 				order = 3,
 			})
@@ -108,14 +108,14 @@ function RemoveScubaGear()
 end
 
 function RegisterOxygenCallbacks()
-	exports["pulsar-core"]:RegisterClientCallback("Status:UseScubaGear", function(data, cb)
-		if IsPedSwimming(LocalPlayer.state.ped) then
-			exports["pulsar-hud"]:Notification("error", "Can't Put On Scuba Gear Whilst Swimming")
+	plsr.Callbacks:RegisterClientCallback("Status:UseScubaGear", function(data, cb)
+		if IsPedSwimming(PlayerPedId()) then
+			plsr.Notification:Error("Can't Put On Scuba Gear Whilst Swimming")
 			return
 		end
 
 		if oxygenDepletionRate >= 1 then
-			exports['pulsar-hud']:Progress({
+			plsr.Progress:Progress({
 				name = "scuba_gear",
 				duration = 5000,
 				label = "Fitting Scuba Gear",
@@ -135,7 +135,7 @@ function RegisterOxygenCallbacks()
 				if not cancelled then
 					oxygenDepletionRate = 0.025
 
-					exports['pulsar-hud']:RegisterStatus("oxygen", 100, 100, "mask-snorkel", "#457F88", true, true, {
+					plsr.Hud:RegisterStatus("oxygen", 100, 100, "mask-ventilator", "#457F88", true, true, {
 						hideHigh = false,
 						order = 3,
 					})
@@ -144,7 +144,7 @@ function RegisterOxygenCallbacks()
 
 					CreateThread(function()
 						Wait(5000)
-						while oxygenDepletionRate < 1 and LocalPlayer.state.loggedIn do
+						while oxygenDepletionRate < 1 and plsr.State.flags.loggedIn do
 							if
 								(oxygenTank and not DoesEntityExist(oxygenTank))
 								or (oxygenMask and not DoesEntityExist(oxygenMask))
@@ -164,9 +164,9 @@ function RegisterOxygenCallbacks()
 end
 
 function RegisterOxygenMenus()
-	exports['pulsar-hud']:InteractionRegisterMenu("scuba_gear", "Take Off Scuba Gear", "mask-snorkel", function()
+	plsr.Interaction:RegisterMenu("scuba_gear", "Take Off Scuba Gear", "mask-ventilator", function()
 		RemoveScubaGear()
-		exports['pulsar-hud']:InteractionHide()
+		plsr.Interaction:Hide()
 	end, function()
 		return oxygenDepletionRate < 1
 	end)
@@ -179,14 +179,14 @@ function WearScubaGear()
 	LoadPropModel(`p_s_scuba_mask_s`)
 
 	oxygenTank = CreateObject(`p_s_scuba_tank_s`, 1.0, 1.0, 1.0, 1, 1, 0)
-	local bone = GetPedBoneIndex(LocalPlayer.state.ped, 24818)
-	AttachEntityToEntity(oxygenTank, LocalPlayer.state.ped, bone, -0.25, -0.25, 0.0, 180.0, 90.0, 0.0, 1, 1, 0, 0, 2, 1)
+	local bone = GetPedBoneIndex(PlayerPedId(), 24818)
+	AttachEntityToEntity(oxygenTank, PlayerPedId(), bone, -0.25, -0.25, 0.0, 180.0, 90.0, 0.0, 1, 1, 0, 0, 2, 1)
 	SetEntityCollision(oxygenTank, false, true)
 	SetEntityCompletelyDisableCollision(oxygenTank, false, true)
 
 	oxygenMask = CreateObject(`p_s_scuba_mask_s`, 1.0, 1.0, 1.0, 1, 1, 0)
-	local bone = GetPedBoneIndex(LocalPlayer.state.ped, 12844)
-	AttachEntityToEntity(oxygenMask, LocalPlayer.state.ped, bone, 0.0, 0.0, 0.0, 180.0, 90.0, 0.0, 1, 1, 0, 0, 2, 1)
+	local bone = GetPedBoneIndex(PlayerPedId(), 12844)
+	AttachEntityToEntity(oxygenMask, PlayerPedId(), bone, 0.0, 0.0, 0.0, 180.0, 90.0, 0.0, 1, 1, 0, 0, 2, 1)
 	SetEntityCollision(oxygenMask, false, true)
 	SetEntityCompletelyDisableCollision(oxygenMask, false, true)
 end

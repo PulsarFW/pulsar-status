@@ -305,11 +305,11 @@ function CreateStressPolys()
 	for k, v in ipairs(_pzDefs) do
 		local pId = string.format("StressReleif%s", k)
 		if v.type == "poly" then
-			exports['pulsar-polyzone']:CreatePoly(pId, v.points, v.options or {}, v.data or {})
+			plsr.Polyzone.Create:Poly(pId, v.points, v.options or {}, v.data or {})
 		elseif v.type == "box" then
-			exports['pulsar-polyzone']:CreateBox(pId, v.coords, v.length, v.width, v.options or {}, v.data or {})
+			plsr.Polyzone.Create:Box(pId, v.coords, v.length, v.width, v.options or {}, v.data or {})
 		else
-			exports['pulsar-polyzone']:CreateCircle(pId, v.coords, v.radius, v.options or {}, v.data or {})
+			plsr.Polyzone.Create:Circle(pId, v.coords, v.radius, v.options or {}, v.data or {})
 		end
 
 		_pzs[pId] = k
@@ -321,7 +321,7 @@ function CreateStressBlips()
 		local pId = string.format("StressReleif%s", k)
 
 		if v.blip ~= nil then
-			exports["pulsar-blips"]:Add(
+			plsr.Blips:Add(
 				pId,
 				v.blip.label or "Stress Reliever",
 				v.blip.coords,
@@ -334,20 +334,19 @@ function CreateStressBlips()
 end
 
 AddEventHandler("Polyzone:Enter", function(id, testedPoint, insideZones, data)
-	if _pzs[id] and exports['pulsar-status']:GetSingle("PLAYER_STRESS").value > 0 and not _delay then
-		while GetVehiclePedIsIn(LocalPlayer.state.ped) ~= 0 do
+	if _pzs[id] and plsr.Status.Get:Single("PLAYER_STRESS").value > 0 and not _delay then
+		while GetVehiclePedIsIn(PlayerPedId()) ~= 0 do
 			Wait(10)
 		end
 		_inPoly = id
-		exports['pulsar-hud']:ActionShow("destress",
-			string.format("{keybind}primary_action{/keybind} To %s", _pzDefs[_pzs[id]].action))
+		plsr.Action:Show("destress", string.format("{keybind}primary_action{/keybind} To %s", _pzDefs[_pzs[id]].action))
 	end
 end)
 
 AddEventHandler("Polyzone:Exit", function(id, testedPoint, insideZones, data)
 	if _pzs[id] and id == _inPoly then
 		_inPoly = nil
-		exports['pulsar-hud']:ActionHide("destress")
+		plsr.Action:Hide("destress")
 	end
 end)
 
@@ -357,15 +356,15 @@ AddEventHandler("Keybinds:Client:KeyUp:primary_action", function()
 		if _pzDefs[_pzs[_inPoly]].anim ~= nil and not _delay then
 			local animData = _pzDefs[_pzs[_inPoly]].anim
 
-			local currentStress = exports['pulsar-status']:GetSingle("PLAYER_STRESS").value
+			local currentStress = plsr.Status.Get:Single("PLAYER_STRESS").value
 			local reliefMultiplier = _pzDefs[_pzs[_inPoly]].multipier or 3.0
 
 			local totalTime = math.ceil(currentStress * reliefMultiplier) * 1000
 			local tickTime = totalTime / currentStress
 
 			_delay = true
-			exports['pulsar-hud']:ActionHide("destress")
-			exports['pulsar-hud']:ProgressWithTickEvent({
+			plsr.Action:Hide("destress")
+			plsr.Progress:ProgressWithTickEvent({
 				name = "stress_releif",
 				duration = totalTime,
 				label = "Relieving Stress",
@@ -382,19 +381,19 @@ AddEventHandler("Keybinds:Client:KeyUp:primary_action", function()
 				animation = animData,
 				disarm = true,
 			}, function()
-				exports['pulsar-status']:Remove("PLAYER_STRESS", 1, true)
+				plsr.Status.Modify:Remove("PLAYER_STRESS", 1, true)
 			end, function(cancelled)
 				if not cancelled then
-					exports['pulsar-status']:SetSingle("PLAYER_STRESS", 0)
-					exports["pulsar-hud"]:Notification("success", "Stress Relieved")
+					plsr.Status.Set:Single("PLAYER_STRESS", 0)
+					plsr.Notification:Success("Stress Relieved")
 				else
-					exports["pulsar-hud"]:Notification("info", "Stress Partially Relieved")
+					plsr.Notification:Info("Stress Partially Relieved")
 				end
 
 				SetTimeout(tickTime * 2, function()
 					_delay = false
-					if _inPoly ~= nil and exports['pulsar-status']:GetSingle("PLAYER_STRESS").value > 0 then
-						exports['pulsar-hud']:ActionShow(
+					if _inPoly ~= nil and plsr.Status.Get:Single("PLAYER_STRESS").value > 0 then
+						plsr.Action:Show(
 							"destress",
 							string.format("{keybind}primary_action{/keybind} To %s", _pzDefs[_pzs[_inPoly]].action)
 						)

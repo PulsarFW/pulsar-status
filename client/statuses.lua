@@ -4,10 +4,10 @@ local _stressTicks = 0
 AddEventHandler("Characters:Client:Spawn", function()
 	CreateThread(function()
 		local effectCount = 0
-		while LocalPlayer.state.loggedIn do
+		while plsr.State.flags.loggedIn do
 			local player = PlayerPedId()
-			if not LocalPlayer.state.isDead then
-				local val = exports['pulsar-status']:GetSingle("PLAYER_THIRST").value or 100
+			if not plsr.State.flags.isDead then
+				local val = plsr.Status.Get:Single("PLAYER_THIRST").value or 100
 				if val <= 25 then
 					SetPlayerSprint(PlayerId(), false)
 					if val == 0 and effectCount >= 500 then
@@ -16,7 +16,7 @@ AddEventHandler("Characters:Client:Spawn", function()
 						if luck <= 20 then
 							SetPedToRagdoll(player, 1500, 2000, 3, true, true, false)
 						end
-						exports['pulsar-damage']:ApplyStandardDamage(3, false)
+						plsr.Damage.Apply:StandardDamage(3, false)
 						effectCount = 0
 					elseif effectCount >= 1000 then
 						ShakeGameplayCam("SMALL_EXPLOSION_SHAKE", 0.2)
@@ -40,10 +40,10 @@ AddEventHandler("Characters:Client:Spawn", function()
 
 	CreateThread(function()
 		local effectCount = 0
-		while LocalPlayer.state.loggedIn do
+		while plsr.State.flags.loggedIn do
 			local player = PlayerPedId()
-			if not LocalPlayer.state.isDead then
-				local val = exports['pulsar-status']:GetSingle("PLAYER_STRESS").value or 0
+			if not plsr.State.flags.isDead then
+				local val = plsr.Status.Get:Single("PLAYER_STRESS").value or 0
 				local level = math.floor(val / 25)
 
 				if val >= 40 then
@@ -73,9 +73,9 @@ end)
 
 RegisterNetEvent("Status:Client:updateStatus", function(need, action, amount)
 	if action then
-		exports['pulsar-status']:Add(need, tonumber(amount or 0), 2)
+		plsr.Status.Modify:Add(need, tonumber(amount or 0), 2)
 	else
-		exports['pulsar-status']:Remove(need, tonumber(amount or 0))
+		plsr.Status.Modify:Remove(need, tonumber(amount or 0))
 	end
 end)
 
@@ -101,9 +101,9 @@ local _stressListener = nil
 local _hpListener = nil
 
 RegisterNetEvent("Status:Client:Ticks:Stress", function()
-	if LocalPlayer.state.stressTicks ~= nil then
-		exports['pulsar-hud']:ApplyBuff("stress_ticks", #(LocalPlayer.state.stressTicks or {}), false, {
-			customMax = #(LocalPlayer.state.stressTicks or {}),
+	if plsr.State.flags.stressTicks ~= nil then
+		plsr.Buffs:ApplyUniqueBuff("stress_ticks", #(plsr.State.flags.stressTicks or {}), false, {
+			customMax = #(plsr.State.flags.stressTicks or {}),
 		})
 	end
 end)
@@ -111,38 +111,38 @@ end)
 AddEventHandler("Characters:Client:Spawn", function()
 	CreateThread(function()
 		if _strTickRunning then
-			exports['pulsar-core']:LoggerTrace("Status", "Stress Thread Running, Skipping Creation")
+			plsr.Logger:Trace("Status", "Stress Thread Running, Skipping Creation")
 			return
 		end
 
 		_strTickRunning = true
-		while LocalPlayer.state.loggedIn do
-			if LocalPlayer.state.stressTicks ~= nil then
-				local cst = exports['pulsar-status']:GetSingle("PLAYER_STRESS").value
+		while plsr.State.flags.loggedIn do
+			if plsr.State.flags.stressTicks ~= nil then
+				local cst = plsr.Status.Get:Single("PLAYER_STRESS").value
 				local max = 0
 
 				if cst <= max then
-					LocalPlayer.state:set("stressTicks", nil, true)
+					plsr.State.flags.stressTicks = nil
 				else
-					local gen = LocalPlayer.state.stressTicks[1] or 0
+					local gen = plsr.State.flags.stressTicks[1] or 0
 					if cst - gen < max then
 						gen = cst
 					end
 
 					if cst - gen >= max then
-						exports['pulsar-core']:LoggerTrace(
+						plsr.Logger:Trace(
 							"Status",
-							string.format("Stress Tick: %s (Original: %s)", gen, LocalPlayer.state.stressTicks[1])
+							string.format("Stress Tick: %s (Original: %s)", gen, plsr.State.flags.stressTicks[1])
 						)
-						exports['pulsar-status']:Remove("PLAYER_STRESS", tonumber(gen or 0), true)
+						plsr.Status.Modify:Remove("PLAYER_STRESS", tonumber(gen or 0), true)
 					end
 
-					local t = LocalPlayer.state.stressTicks
+					local t = plsr.State.flags.stressTicks
 					table.remove(t, 1)
 					if #t > 0 then
-						LocalPlayer.state:set("stressTicks", t, true)
+						plsr.State.flags.stressTicks = t
 					else
-						LocalPlayer.state:set("stressTicks", nil, true)
+						plsr.State.flags.stressTicks = nil
 					end
 				end
 				Wait(10000)
@@ -155,25 +155,25 @@ AddEventHandler("Characters:Client:Spawn", function()
 end)
 
 function RegisterStatuses()
-	exports['pulsar-status']:Register("PLAYER_THIRST", 100, "whiskey-glass", "#07bdf0", true, function(change)
-		if LocalPlayer.state.ignorePLAYER_THIRST then
-			if LocalPlayer.state.ignorePLAYER_THIRST - 1 > 0 then
-				LocalPlayer.state:set("ignorePLAYER_THIRST", LocalPlayer.state.ignorePLAYER_THIRST - 1)
+	plsr.Status:Register("PLAYER_THIRST", 100, "whiskey-glass", "#07bdf0", true, function(change)
+		if plsr.State.flags.ignorePLAYER_THIRST then
+			if plsr.State.flags.ignorePLAYER_THIRST - 1 > 0 then
+				plsr.State.flags.ignorePLAYER_THIRST = plsr.State.flags.ignorePLAYER_THIRST - 1
 			else
-				LocalPlayer.state:set("ignorePLAYER_THIRST", nil)
+				plsr.State.flags.ignorePLAYER_THIRST = nil
 			end
 			return
 		end
 
 		local player = PlayerPedId()
-		if IsEntityDead(player) or LocalPlayer.state.isDead then
+		if IsEntityDead(player) or plsr.State.flags.isDead then
 			return
 		end
 		if change == nil then
 			change = -1
 		end
 
-		local val = exports['pulsar-status']:GetSingle("PLAYER_THIRST").value or 100
+		local val = plsr.Status.Get:Single("PLAYER_THIRST").value or 100
 		if val + change > 100 then
 			val = 100
 		elseif val + change < 0 then
@@ -182,7 +182,7 @@ function RegisterStatuses()
 			val = val + change
 		end
 
-		exports['pulsar-status']:SetSingle("PLAYER_THIRST", val)
+		plsr.Status.Set:Single("PLAYER_THIRST", val)
 		TriggerEvent("Status:Client:Update", "PLAYER_THIRST", val)
 		thirstTick = 0
 	end, {
@@ -191,18 +191,18 @@ function RegisterStatuses()
 		order = 6,
 	})
 
-	exports['pulsar-status']:Register("PLAYER_HUNGER", 100, "drumstick-bite", "#ca5fe8", true, function(change)
-		if LocalPlayer.state.ignorePLAYER_HUNGER then
-			if LocalPlayer.state.ignorePLAYER_HUNGER - 1 > 0 then
-				LocalPlayer.state:set("ignorePLAYER_HUNGER", LocalPlayer.state.ignorePLAYER_HUNGER - 1)
+	plsr.Status:Register("PLAYER_HUNGER", 100, "drumstick-bite", "#ca5fe8", true, function(change)
+		if plsr.State.flags.ignorePLAYER_HUNGER then
+			if plsr.State.flags.ignorePLAYER_HUNGER - 1 > 0 then
+				plsr.State.flags.ignorePLAYER_HUNGER = plsr.State.flags.ignorePLAYER_HUNGER - 1
 			else
-				LocalPlayer.state:set("ignorePLAYER_HUNGER", nil)
+				plsr.State.flags.ignorePLAYER_HUNGER = nil
 			end
 			return
 		end
 
 		local player = PlayerPedId()
-		if IsEntityDead(player) or LocalPlayer.state.isDead then
+		if IsEntityDead(player) or plsr.State.flags.isDead then
 			return
 		end
 
@@ -210,7 +210,7 @@ function RegisterStatuses()
 			change = -1
 		end
 
-		local val = exports['pulsar-status']:GetSingle("PLAYER_HUNGER").value or 100
+		local val = plsr.Status.Get:Single("PLAYER_HUNGER").value or 100
 		if val + change > 100 then
 			val = 100
 		elseif val + change < 0 then
@@ -218,17 +218,17 @@ function RegisterStatuses()
 		else
 			val = val + change
 		end
-		exports['pulsar-status']:SetSingle("PLAYER_HUNGER", val)
+		plsr.Status.Set:Single("PLAYER_HUNGER", val)
 		TriggerEvent("Status:Client:Update", "PLAYER_HUNGER", val)
 
 		if val <= 25 then
 			if val > 10 then
 				if (GetEntityHealth(player) - 100) > 11 then
-					exports['pulsar-damage']:ApplyStandardDamage(10, false)
+					plsr.Damage.Apply:StandardDamage(10, false)
 				end
 			else
 				if (GetEntityHealth(player) - 100) > 1 then
-					exports['pulsar-damage']:ApplyStandardDamage(1, false)
+					plsr.Damage.Apply:StandardDamage(1, false)
 				else
 					if _hungerTicks <= 10 then
 						SetFlash(0, 0, 100, 10000, 100)
@@ -247,13 +247,13 @@ function RegisterStatuses()
 		order = 5,
 	})
 
-	exports['pulsar-status']:Register("PLAYER_STRESS", 0, "face-dizzy", "#de3333", false, function(change, force)
+	plsr.Status:Register("PLAYER_STRESS", 0, "brain", "#de3333", false, function(change, force)
 		if _stressTicks > 1 or force then
-			if LocalPlayer.state.ignorePLAYER_STRESS then
-				if LocalPlayer.state.ignorePLAYER_STRESS - 1 > 0 then
-					LocalPlayer.state:set("ignorePLAYER_STRESS", LocalPlayer.state.ignorePLAYER_STRESS - 1)
+			if plsr.State.flags.ignorePLAYER_STRESS then
+				if plsr.State.flags.ignorePLAYER_STRESS - 1 > 0 then
+					plsr.State.flags.ignorePLAYER_STRESS = plsr.State.flags.ignorePLAYER_STRESS - 1
 				else
-					LocalPlayer.state:set("ignorePLAYER_STRESS", nil)
+					plsr.State.flags.ignorePLAYER_STRESS = nil
 				end
 				return
 			end
@@ -261,7 +261,7 @@ function RegisterStatuses()
 			_stressTicks = 0
 
 			local player = PlayerPedId()
-			if IsEntityDead(player) or LocalPlayer.state.isDead then
+			if IsEntityDead(player) or plsr.State.flags.isDead then
 				return
 			end
 
@@ -269,7 +269,7 @@ function RegisterStatuses()
 				change = -1
 			end
 
-			local val = exports['pulsar-status']:GetSingle("PLAYER_STRESS").value or 0
+			local val = plsr.Status.Get:Single("PLAYER_STRESS").value or 0
 			if val + change > 100 then
 				val = 100
 			elseif val + change < 0 then
@@ -277,7 +277,7 @@ function RegisterStatuses()
 			else
 				val = val + change
 			end
-			exports['pulsar-status']:SetSingle("PLAYER_STRESS", val)
+			plsr.Status.Set:Single("PLAYER_STRESS", val)
 			TriggerEvent("Status:Client:Update", "PLAYER_STRESS", val)
 		else
 			_stressTicks = _stressTicks + 1
@@ -290,13 +290,13 @@ function RegisterStatuses()
 		order = 4,
 	})
 
-	exports['pulsar-status']:Register("PLAYER_DRUNK", 0, "champagne-glasses", "#9D4C0B", false, function(change, force)
+	plsr.Status:Register("PLAYER_DRUNK", 0, "champagne-glasses", "#9D4C0B", false, function(change, force)
 		local player = PlayerPedId()
-		if IsEntityDead(player) or LocalPlayer.state.isDead then
+		if IsEntityDead(player) or plsr.State.flags.isDead then
 			return
 		end
 
-		local val = exports['pulsar-status']:GetSingle("PLAYER_DRUNK").value or 0
+		local val = plsr.Status.Get:Single("PLAYER_DRUNK").value or 0
 
 		if change == nil then
 			if val and val >= 25 then
@@ -315,10 +315,10 @@ function RegisterStatuses()
 		end
 
 		if val >= 10 then
-			LocalPlayer.state:set("isDrunk", val, true)
+			plsr.State:SetPublicClientFlag('isDrunk', val)
 		end
 
-		exports['pulsar-status']:SetSingle("PLAYER_DRUNK", val)
+		plsr.Status.Set:Single("PLAYER_DRUNK", val)
 		TriggerEvent("Status:Client:Update", "PLAYER_DRUNK", val)
 	end, {
 		id = 5,
@@ -327,19 +327,10 @@ function RegisterStatuses()
 		noReset = true,
 		order = 7,
 	})
-
-	exports['pulsar-status']:Register("PLAYER_DEV", 0, "fas fa-terminal", "#000000", false, function(change)
-		-- We don't need to do anything here
-	end, {
-		id = 7,
-		hideZero = true,
-		order = 8,
-		noReset = true,
-	})
 end
 
 -- RegisterCommand('testdrunk', function(src, args)
--- 	exports['pulsar-status']:SetSingle("PLAYER_DRUNK", tonumber(args[1]))
+-- 	plsr.Status.Set:Single("PLAYER_DRUNK", tonumber(args[1]))
 -- end)
 
 function LoadAnimSet(animSet)
